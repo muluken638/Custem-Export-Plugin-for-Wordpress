@@ -1,7 +1,7 @@
 <?php
 // pages/excel_export_form.php
 
-if (!defined('ABSPATH')) exit; // security check
+if (!defined('ABSPATH')) exit; // security check to make the authenticated user access this file
 ?>
 <div class="wrap" style=" margin:20px ">
     <h1 style="color:#21759b; font-weight:bold; text-align:center; margin-bottom:30px;">Custom Excel Export</h1>
@@ -71,4 +71,5 @@ if (!defined('ABSPATH')) exit; // security check
             box-shadow: 0 8px 22px rgba(0,0,0,0.15);
         }
     </style>
+    <!-- this is custome add  -->
 </div>
