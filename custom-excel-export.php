@@ -2,8 +2,8 @@
 /*
 Plugin Name: Custom Excel Export
 Description: Admin-only plugin to export Simple Job Board applicants to Excel with dynamic fields, filters, and saved copies. Dropdowns are dynamically populated from the database.
-Version: 2.4
-Author: Muluken Zeleke
+Version: 2.5
+Author: Muluken zeleke
 */
 
 if (!defined('ABSPATH')) exit;
@@ -324,22 +324,23 @@ function cee_export_excel() {
 
         $main_cols = range('A', 'M');
         foreach ($main_cols as $mc) {
-            $sheet->setCellValue($mc . $row_num, match ($mc) {
-                'A' => $i + 1,
-                'B' => $meta['jobapp_name'][0] ?? '',
-                'C' => $meta['jobapp_gender'][0] ?? '',
-                'D' => $meta['jobapp_age'][0] ?? '',
-                'E' => $meta['jobapp_marital_status'][0] ?? '',
-                'F' => $meta['jobapp_birth_place_state_'][0] ?? '',
-                'G' => $meta['jobapp_birth_place_city'][0] ?? '',
-                'H' => $meta['jobapp_current_address'][0] ?? '',
-                'I' => $meta['jobapp_educational_level'][0] ?? '',
-                'J' => $meta['jobapp_field_of_study'][0] ?? '',
-                'K' => $meta['jobapp_year_of_graduation'][0] ?? '',
-                'L' => $meta['jobapp_university_college'][0] ?? '',
-                'M' => $meta['jobapp_cgpa'][0] ?? '',
-                default => ''
-            });
+            $value = '';
+            switch ($mc) {
+                case 'A': $value = $i + 1; break;
+                case 'B': $value = $meta['jobapp_name'][0] ?? ''; break;
+                case 'C': $value = $meta['jobapp_gender'][0] ?? ''; break;
+                case 'D': $value = $meta['jobapp_age'][0] ?? ''; break;
+                case 'E': $value = $meta['jobapp_marital_status'][0] ?? ''; break;
+                case 'F': $value = $meta['jobapp_birth_place_state'][0] ?? ''; break; // fixed key
+                case 'G': $value = $meta['jobapp_birth_place_city'][0] ?? ''; break;
+                case 'H': $value = $meta['jobapp_current_address'][0] ?? ''; break;
+                case 'I': $value = $meta['jobapp_educational_level'][0] ?? ''; break;
+                case 'J': $value = $meta['jobapp_field_of_study'][0] ?? ''; break;
+                case 'K': $value = $meta['jobapp_year_of_graduation'][0] ?? ''; break;
+                case 'L': $value = $meta['jobapp_university_college'][0] ?? ''; break;
+                case 'M': $value = $meta['jobapp_cgpa'][0] ?? ''; break;
+            }
+            $sheet->setCellValue($mc . $row_num, $value);
             if ($exp_count > 1) $sheet->mergeCells($mc . $row_num . ':' . $mc . ($row_num + $exp_count - 1));
             $sheet->getStyle($mc . $row_num)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
         }
@@ -355,12 +356,13 @@ function cee_export_excel() {
 
         $salary_cols = ['S', 'T', 'U'];
         foreach ($salary_cols as $sc) {
-            $sheet->setCellValue($sc . $start_row, match ($sc) {
-                'S' => $meta['jobapp_current_gross_salary'][0] ?? '',
-                'T' => $meta['jobapp_expected_gross_salary'][0] ?? '',
-                'U' => $meta['jobapp_phone'][0] ?? '',
-                default => ''
-            });
+            $value = '';
+            switch ($sc) {
+                case 'S': $value = $meta['jobapp_current_gross_salary'][0] ?? ''; break;
+                case 'T': $value = $meta['jobapp_expected_gross_salary'][0] ?? ''; break;
+                case 'U': $value = $meta['jobapp_phone'][0] ?? ''; break;
+            }
+            $sheet->setCellValue($sc . $start_row, $value);
             if ($exp_count > 1) $sheet->mergeCells($sc . $start_row . ':' . $sc . ($row_num - 1));
             $sheet->getStyle($sc . $start_row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
         }
@@ -373,30 +375,20 @@ function cee_export_excel() {
         }
     }
 
-    // Save file
-    $upload_dir = wp_upload_dir();
-    $export_dir = $upload_dir['basedir'] . '/exports/';
-    if (!file_exists($export_dir)) wp_mkdir_p($export_dir);
-    $fileName = 'sjb_applicants_export_' . date('Ymd_His') . '.xlsx';
-    $filePath = $export_dir . $fileName;
+    // Download
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="applicants.xlsx"');
+    header('Cache-Control: max-age=0');
 
     $writer = new Xlsx($spreadsheet);
-    $writer->save($filePath);
-
-    // Force download
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="' . $fileName . '"');
-    header('Cache-Control: max-age=0');
     $writer->save('php://output');
     exit;
 }
 
-// Helper to calculate years of experience
+// Utility
 function calculate_years($from, $to) {
     if (!$from || !$to) return '';
-    $from_date = DateTime::createFromFormat('Y-m-d', $from);
-    $to_date = DateTime::createFromFormat('Y-m-d', $to);
-    if (!$from_date || !$to_date) return '';
-    $diff = $to_date->diff($from_date);
-    return $diff->y + round($diff->m / 12, 2);
+    $from = strtotime($from);
+    $to = strtotime($to);
+    return $from && $to ? round(abs($to - $from) / (365*24*60*60), 2) : '';
 }
